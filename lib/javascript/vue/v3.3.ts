@@ -1,0 +1,28 @@
+export function generate(params: any): string {
+	return `const { defineConfig } = require('@vue/cli-service');
+
+module.exports = defineConfig({
+  transpileDependencies: true,
+  devServer: {
+    port: 8080,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
+  css: {
+    loaderOptions: {
+      sass: {
+        additionalData: '@import "@/styles/variables.scss";',
+      },
+    },
+  },
+  pluginOptions: {
+    vuetify: {
+      defaultTheme: 'light',
+    },
+  },
+});`;
+}

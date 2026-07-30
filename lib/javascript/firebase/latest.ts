@@ -1,0 +1,39 @@
+export function generate(params: any): string {
+	return JSON.stringify(
+		{
+			hosting: {
+				public: "dist",
+				ignore: ["firebase.json", "**/.*", "**/node_modules/**"],
+				rewrites: [
+					{
+						source: "**",
+						destination: "/index.html",
+					},
+				],
+			},
+			firestore: {
+				rules: "firestore.rules",
+				indexes: "firestore.indexes.json",
+			},
+			functions: {
+				source: "functions",
+			},
+			emulators: {
+				auth: {
+					port: 9099,
+				},
+				functions: {
+					port: 5001,
+				},
+				firestore: {
+					port: 8080,
+				},
+				hosting: {
+					port: 5000,
+				},
+			},
+		},
+		null,
+		2,
+	);
+}

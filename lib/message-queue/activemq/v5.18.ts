@@ -1,0 +1,56 @@
+export function generate(params: any): string {
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+    
+    <broker xmlns="http://activemq.apache.org/schema/core" brokerName="localhost" dataDirectory="\${activemq.data}">
+        
+        <destinationPolicy>
+            <policyMap>
+                <policyEntries>
+                    <policyEntry topic=">" producerFlowControl="true">
+                        <pendingMessageLimitStrategy>
+                            <constantPendingMessageLimitStrategy limit="1000"/>
+                        </pendingMessageLimitStrategy>
+                    </policyEntry>
+                    <policyEntry queue=">" producerFlowControl="true" memoryLimit="1mb"/>
+                </policyEntries>
+            </policyMap>
+        </destinationPolicy>
+        
+        <managementContext>
+            <managementContext createConnector="false"/>
+        </managementContext>
+        
+        <persistenceAdapter>
+            <kahaDB directory="\${activemq.data}/kahadb"/>
+        </persistenceAdapter>
+        
+        <systemUsage>
+            <systemUsage>
+                <memoryUsage>
+                    <memoryUsage percentOfJvmHeap="70"/>
+                </memoryUsage>
+                <storeUsage>
+                    <storeUsage limit="100 gb"/>
+                </storeUsage>
+                <tempUsage>
+                    <tempUsage limit="50 gb"/>
+                </tempUsage>
+            </systemUsage>
+        </systemUsage>
+        
+        <transportConnectors>
+            <transportConnector name="openwire" uri="tcp://0.0.0.0:61616"/>
+            <transportConnector name="amqp" uri="amqp://0.0.0.0:5672"/>
+            <transportConnector name="stomp" uri="stomp://0.0.0.0:61613"/>
+        </transportConnectors>
+        
+    </broker>
+    
+    <import resource="jetty.xml"/>
+    
+</beans>`;
+}

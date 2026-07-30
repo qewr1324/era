@@ -1,0 +1,17 @@
+export function generate(params: any): string {
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Custom Rules"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+    http://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+    
+    <description>PMD Rules</description>
+    
+    <rule ref="category/java/bestpractices.xml"/>
+    <rule ref="category/java/codestyle.xml"/>
+    <rule ref="category/java/design.xml"/>
+    <rule ref="category/java/errorprone.xml"/>
+    
+</ruleset>`;
+}

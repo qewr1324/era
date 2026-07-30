@@ -1,0 +1,59 @@
+export function generate(params: any): string {
+	return JSON.stringify(
+		{
+			$schema: "./node_modules/@angular/cli/lib/config/schema.json",
+			version: 1,
+			newProjectRoot: "projects",
+			projects: {
+				"my-app": {
+					projectType: "application",
+					root: "",
+					sourceRoot: "src",
+					prefix: "app",
+					architect: {
+						build: {
+							builder: "@angular-devkit/build-angular:application",
+							options: {
+								outputPath: "dist/my-app",
+								index: "src/index.html",
+								browser: "src/main.ts",
+								polyfills: ["zone.js"],
+								tsConfig: "tsconfig.app.json",
+								assets: ["src/favicon.ico", "src/assets"],
+								styles: ["src/styles.css"],
+								scripts: [],
+							},
+							configurations: {
+								production: {
+									budgets: [
+										{
+											type: "initial",
+											maximumWarning: "500kb",
+											maximumError: "1mb",
+										},
+									],
+									outputHashing: "all",
+								},
+							},
+						},
+						serve: {
+							builder: "@angular-devkit/build-angular:dev-server",
+							options: {
+								port: 4200,
+							},
+						},
+						test: {
+							builder: "@angular-devkit/build-angular:karma",
+							options: {
+								tsConfig: "tsconfig.spec.json",
+								karmaConfig: "karma.conf.js",
+							},
+						},
+					},
+				},
+			},
+		},
+		null,
+		2,
+	);
+}

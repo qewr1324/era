@@ -1,0 +1,728 @@
+System Prompt
+text
+
+You are an expert VSCode extension developer and workflow automation architect with deep knowledge of:
+- VSCode Extension API, Webview API, TreeView API
+- TypeScript, esbuild bundling, code generation
+- Workflow engines (n8n, Node-RED, Temporal, Airflow)
+- DevOps practices (CI/CD, Infrastructure as Code, monitoring)
+
+You are building "ERA" (Elastic Runtime Automation), a professional VSCode extension that brings n8n-like visual workflow automation inside VSCode with the unique ability to export self-contained, production-ready JavaScript bundles.
+
+Main Prompt
+text
+
+Build a complete VSCode extension called "ERA - Elastic Runtime Automation".
+
+## CORE CONCEPT
+ERA is an n8n-like visual workflow builder inside VSCode that:
+1. Allows users to build automation workflows visually (drag & drop nodes, connect them)
+2. Compiles the visual workflow into executable JavaScript code
+3. Bundles all dependencies into a single minified file
+4. Exports a standalone .js file that runs anywhere with Node.js
+
+Unlike n8n which requires its own server to run workflows, ERA generates independent, portable code.
+
+## ARCHITECTURE
+
+### Extension Structure:
+
+era/
+├── package.json
+├── tsconfig.json
+├── src/
+│ ├── extension.ts # Entry point, registers commands
+│ ├── webview/
+│ │ ├── workflowEditor.ts # Webview panel manager
+│ │ ├── components/
+│ │ │ ├── Canvas.ts # SVG/Canvas for drawing nodes & edges
+│ │ │ ├── NodePalette.ts # Sidebar with draggable node types
+│ │ │ ├── NodeRenderer.ts # Renders individual nodes
+│ │ │ ├── EdgeRenderer.ts # Renders connections between nodes
+│ │ │ ├── PropertyPanel.ts # Right panel for node configuration
+│ │ │ ├── Toolbar.ts # Top toolbar (save, export, run, etc.)
+│ │ │ └── Minimap.ts # Minimap for large workflows
+│ │ ├── state/
+│ │ │ └── workflowStore.ts # State management (Redux-like)
+│ │ └── index.html # Webview HTML entry
+│ ├── compiler/
+│ │ ├── compiler.ts # Main compiler: graph → code
+│ │ ├── nodeRegistry.ts # Registry of all available node types
+│ │ ├── templateEngine.ts # Handlebars/Liquid-style templating
+│ │ ├── codeGenerators/
+│ │ │ ├── triggerGenerator.ts # Generates trigger code
+│ │ │ ├── actionGenerator.ts # Generates action code
+│ │ │ ├── flowControlGenerator.ts # Generates if/loop/parallel code
+│ │ │ └── errorHandlerGenerator.ts
+│ │ └── optimizer.ts # Dead code elimination, optimization
+│ ├── bundler/
+│ │ ├── esbuildBundler.ts # esbuild wrapper for final bundle
+│ │ ├── dependencyResolver.ts # Resolves npm dependencies
+│ │ └── minifier.ts # Terser/esbuild minification
+│ ├── runtime/
+│ │ ├── runtimeCore.ts # Core runtime injected into output
+│ │ ├── contextManager.ts # Manages data flow between nodes
+│ │ └── logger.ts # Built-in logging for workflows
+│ ├── nodes/
+│ │ ├── triggers/
+│ │ │ ├── webhook.ts
+│ │ │ ├── cron.ts
+│ │ │ ├── fileWatcher.ts
+│ │ │ └── manual.ts
+│ │ ├── actions/
+│ │ │ ├── httpRequest.ts
+│ │ │ ├── runCommand.ts
+│ │ │ ├── readFile.ts
+│ │ │ ├── writeFile.ts
+│ │ │ ├── gitClone.ts
+│ │ │ ├── dockerRun.ts
+│ │ │ ├── kubectl.ts
+│ │ │ ├── sshCommand.ts
+│ │ │ └── sqlQuery.ts
+│ │ ├── transformations/
+│ │ │ ├── jsonTransform.ts
+│ │ │ ├── filter.ts
+│ │ │ ├── map.ts
+│ │ │ ├── merge.ts
+│ │ │ └── encrypt.ts
+│ │ ├── notifications/
+│ │ │ ├── slackMessage.ts
+│ │ │ ├── sendEmail.ts
+│ │ │ ├── discordWebhook.ts
+│ │ │ └── telegramMessage.ts
+│ │ └── flowControl/
+│ │ ├── ifCondition.ts
+│ │ ├── loop.ts
+│ │ ├── parallel.ts
+│ │ ├── delay.ts
+│ │ └── tryCatch.ts
+│ ├── utils/
+│ │ ├── graphUtils.ts # Topological sort, cycle detection
+│ │ ├── validationUtils.ts # Workflow validation
+│ │ └── templateUtils.ts # Template variable resolution
+│ └── types/
+│ ├── workflow.ts # Core type definitions
+│ ├── node.ts # Node type definitions
+│ └── compiler.ts # Compiler type definitions
+text
+
+
+## FILE FORMAT (.era.json)
+
+Workflows are saved as `.era.json` files:
+
+```json
+{
+  "version": "1.0",
+  "name": "My Workflow",
+  "description": "Deploy on push to main",
+  "nodes": [
+    {
+      "id": "trigger-1",
+      "type": "webhook",
+      "label": "GitHub Webhook",
+      "position": { "x": 100, "y": 200 },
+      "config": {
+        "method": "POST",
+        "path": "/github-webhook",
+        "port": 3000,
+        "secret": "{{env.WEBHOOK_SECRET}}"
+      }
+    },
+    {
+      "id": "action-1",
+      "type": "runCommand",
+      "label": "Run Tests",
+      "position": { "x": 350, "y": 200 },
+      "config": {
+        "command": "cd {{ctx.cloneResult.path}} && npm test",
+        "timeout": 300000
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "from": "trigger-1",
+      "to": "action-1",
+      "condition": "success"
+    }
+  ],
+  "variables": {
+    "env": {
+      "WEBHOOK_SECRET": "",
+      "SLACK_WEBHOOK": ""
+    }
+  },
+  "settings": {
+    "errorHandling": "stop",
+    "concurrency": 1,
+    "retryOnFailure": false,
+    "maxRetries": 3
+  }
+}
+
+NODE TYPES - Complete Specification
+1. TRIGGERS
+
+Webhook Trigger
+
+    Creates HTTP server to listen for incoming requests
+
+    Config: method, path, port, secret, responseTemplate
+
+    Output: { body, headers, query, params }
+
+Cron Trigger
+
+    Schedules workflow execution
+
+    Config: cronExpression, timezone
+
+    Standard cron syntax: "*/5 * * * *"
+
+File Watcher Trigger
+
+    Watches filesystem for changes
+
+    Config: path, events (create/modify/delete), pattern
+
+    Uses chokidar
+
+Manual Trigger
+
+    User-triggered execution
+
+    Config: inputSchema (JSON Schema for input validation)
+
+2. ACTIONS
+
+HTTP Request
+
+    Makes HTTP/HTTPS requests
+
+    Config: method, url, headers, body, auth (basic/bearer/oauth), timeout
+
+    Supports: axios with full config
+
+Run Command
+
+    Executes shell commands
+
+    Config: command, cwd, env, timeout, shell
+
+    Captures: stdout, stderr, exitCode
+
+Read File
+
+    Reads file content
+
+    Config: path, encoding
+
+    Output: { content, path, size }
+
+Write File
+
+    Writes content to file
+
+    Config: path, content, encoding, mode
+
+Git Clone
+
+    Clones git repository
+
+    Config: url, branch, depth, auth
+
+Docker Run
+
+    Runs Docker container
+
+    Config: image, command, ports, volumes, env
+
+Kubectl
+
+    Executes kubectl commands
+
+    Config: command, namespace, kubeconfig
+
+SSH Command
+
+    Executes command on remote server
+
+    Config: host, port, username, privateKey/password, command
+
+SQL Query
+
+    Executes SQL queries
+
+    Config: connection (host, port, database, user, password), query
+
+3. TRANSFORMATIONS
+
+JSON Transform
+
+    Transforms data using JSONPath or template
+
+    Config: inputPath, template, outputPath
+
+Filter
+
+    Filters array based on condition
+
+    Config: arrayPath, condition
+
+Encrypt/Decrypt
+
+    Encrypts/decrypts data
+
+    Config: algorithm, key, data
+
+4. NOTIFICATIONS
+
+Slack Message
+
+    Sends message to Slack
+
+    Config: webhookUrl, channel, message, attachments
+
+Send Email
+
+    Sends email
+
+    Config: smtp, from, to, subject, body (HTML supported)
+
+5. FLOW CONTROL
+
+If Condition
+
+    Branch based on condition
+
+    Config: left operand, operator, right operand
+
+    Operators: ==, !=, >, <, >=, <=, contains, matches, empty, exists
+
+Loop
+
+    Iterates over array
+
+    Config: arrayPath, mode (sequential/parallel), maxConcurrency
+
+Parallel
+
+    Executes branches simultaneously
+
+    Config: waitForAll (true/false)
+
+Delay
+
+    Pauses execution
+
+    Config: duration, unit (ms/s/m/h)
+
+Try/Catch
+
+    Error handling wrapper
+
+    Config: maxRetries, retryDelay, fallbackNode
+
+COMPILER - Graph to Code Generation
+
+The compiler must:
+
+    Parse the .era.json workflow file
+
+    Validate (no cycles, all edges reference existing nodes, type compatibility)
+
+    Topological Sort nodes by edges to determine execution order
+
+    Generate Code using template system:
+
+javascript
+
+// Generated output structure:
+// 1. Import all required packages
+// 2. Define runtime context manager
+// 3. Define each node as a function
+// 4. Define main execution flow
+// 5. Export for module usage & CLI execution
+
+import axios from 'axios';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+class WorkflowRuntime {
+  constructor() {
+    this.context = {};
+    this.nodes = {};
+    this.logs = [];
+  }
+  
+  log(level, message, data) {
+    const entry = { timestamp: new Date(), level, message, data };
+    this.logs.push(entry);
+    console[level](message, data);
+  }
+  
+  resolveTemplate(template, context) {
+    return template.replace(/\{\{(.+?)\}\}/g, (match, path) => {
+      return this.resolvePath(path.trim(), context);
+    });
+  }
+  
+  resolvePath(path, context) {
+    const parts = path.split('.');
+    let value = context;
+    for (const part of parts) {
+      if (value === undefined || value === null) return '';
+      value = value[part];
+    }
+    return value ?? '';
+  }
+  
+  registerNode(id, fn) {
+    this.nodes[id] = fn;
+  }
+  
+  async execute(input) {
+    // Main execution logic
+  }
+}
+
+BUNDLER - esbuild Integration
+
+The bundler must:
+
+    Take generated code + dependency list
+
+    Create temporary package.json with all dependencies
+
+    Run npm install in temp directory
+
+    Use esbuild to bundle:
+
+        Platform: node
+
+        Target: node18
+
+        Bundle: true
+
+        Minify: true (with options for different levels)
+
+        Tree shaking: true
+
+        Source maps: optional
+
+    Output single workflow.bundle.js file
+
+    Clean up temporary files
+
+    Report bundle size & dependencies
+
+WEVIEW UI - Visual Editor
+
+Build a professional visual editor similar to n8n:
+Canvas Features:
+
+    Infinite pan & zoom (wheel zoom, middle-click pan)
+
+    Grid background
+
+    Snap-to-grid
+
+    Selection rectangle (multi-select)
+
+    Copy/paste nodes
+
+    Undo/redo (Ctrl+Z/Ctrl+Shift+Z)
+
+    Keyboard shortcuts
+
+    Mini-map for navigation
+
+Node Appearance:
+
+    Rounded rectangles with type-specific colors:
+
+        Triggers: Blue (#4A90D9)
+
+        Actions: Green (#27AE60)
+
+        Transformations: Purple (#8E44AD)
+
+        Notifications: Orange (#E67E22)
+
+        Flow Control: Gray (#7F8C8D)
+
+        Error: Red (#E74C3C)
+
+    Input/Output dots on left/right
+
+    Status indicators (success=green, error=red, running=spinning)
+
+    Label, type icon, and description
+
+Node Palette (Left Sidebar):
+
+    Categorized list of available nodes
+
+    Search/filter functionality
+
+    Drag from palette to canvas
+
+    Recently used nodes section
+
+    Custom node groups (user-created)
+
+Property Panel (Right Sidebar):
+
+    Context-sensitive to selected node
+
+    Form fields for all config options
+
+    Template variable autocomplete ({{ctx...}}, {{env...}})
+
+    Input validation
+
+    Test/run single node button
+
+Toolbar:
+
+    Save (.era.json)
+
+    Export (bundle)
+
+    Export Options dialog:
+
+        Minification level (none/minimal/aggressive)
+
+        Include source maps
+
+        Target (Node.js 18/20/LTS)
+
+        Output format (CommonJS/ESM)
+
+    Run workflow (test in VSCode terminal)
+
+    Validate workflow
+
+    Settings
+
+    Zoom controls
+
+COMMANDS (VSCode Command Palette)
+
+Register these commands:
+
+    era.createWorkflow - Create new .era.json file
+
+    era.openEditor - Open visual editor
+
+    era.exportBundle - Export to bundle
+
+    era.runWorkflow - Run current workflow
+
+    era.validate - Validate workflow
+
+    era.importN8n - Import from n8n JSON export
+
+    era.exportN8n - Export to n8n format
+
+    era.showLogs - Show execution logs
+
+    era.manageTemplates - Open template manager
+
+EXPORT FORMATS
+
+Support multiple export formats:
+1. JavaScript Bundle (Default)
+bash
+
+node workflow.bundle.js
+
+    Single file
+
+    All dependencies included
+
+    Minified
+
+    Self-contained runtime
+
+2. Docker Container
+dockerfile
+
+FROM node:18-alpine
+WORKDIR /app
+COPY workflow.bundle.js .
+CMD ["node", "workflow.bundle.js"]
+
+3. GitHub Actions Workflow
+yaml
+
+name: ERA Workflow
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v3
+      - run: node workflow.bundle.js
+
+ERROR HANDLING
+
+    Workflow validation before compile (show errors in editor)
+
+    Compile-time error highlighting
+
+    Runtime error capture with stack traces
+
+    Node-level error handling (try/catch nodes)
+
+    Retry logic with exponential backoff
+
+    Error notifications (optional)
+
+    Detailed logging per node execution
+
+SECURITY CONSIDERATIONS
+
+    Warn when workflow includes: exec(), eval(), file system access
+
+    Sanitize user inputs in templates
+
+    Environment variable masking in logs
+
+    .gitignore recommendation for .era files with secrets
+
+    Secret management integration (VSCode secrets API)
+
+PERFORMANCE
+
+    Web Workers for compilation (don't block UI)
+
+    Lazy loading for node type definitions
+
+    Canvas virtualization (only render visible nodes)
+
+    Debounced auto-save
+
+    Incremental compilation (only recompile changed nodes)
+
+TESTING APPROACH
+
+    Unit tests for compiler
+
+    Unit tests for each node type
+
+    Integration tests for full workflow execution
+
+    Snapshot tests for generated code
+
+    Performance benchmarks for large workflows (100+ nodes)
+
+DOCUMENTATION
+
+    Built-in tutorial workflow
+
+    Node type reference with examples
+
+    Template variable guide
+
+    Video walkthrough
+
+    Sample workflows library (CI/CD, monitoring, backup)
+
+GENERATED CODE QUALITY
+
+The generated bundle code must be:
+
+    Readable (with option to include comments)
+
+    Well-structured
+
+    Following best practices
+
+    Using modern JavaScript (ES2022+)
+
+    Properly handling async/await
+
+    Memory efficient (no leaks in long-running workflows)
+
+IMPLEMENTATION PRIORITY (MVP First)
+
+Phase 1 - MVP (Month 1-2):
+
+    Basic extension structure
+
+    JSON file format support
+
+    Simple webview with Canvas
+
+    10 essential nodes (webhook, cron, httpRequest, runCommand, readFile, writeFile, ifCondition, loop, slackMessage, sendEmail)
+
+    Compiler (graph → code)
+
+    Bundler (esbuild)
+
+    Export to .js bundle
+
+Phase 2 - Enhancement (Month 3-4):
+
+    Full visual editor with drag & drop
+
+    Property panel
+
+    20+ more nodes
+
+    Template variables
+
+    Error handling
+
+    Docker export
+
+Phase 3 - Advanced (Month 5-6):
+
+    Import/Export n8n format
+
+    GitHub Actions export
+
+    Workflow templates
+
+    Performance optimization
+
+    Marketplace release
+
+TECHNICAL REQUIREMENTS
+
+    TypeScript 5.0+
+
+    VSCode API 1.80+
+
+    esbuild 0.19+
+
+    React 18 (for webview UI)
+
+    D3.js or ReactFlow (for canvas/graph)
+
+    Zod (for validation)
+
+    Handlebars (for templates)
+
+KEY DIFFERENTIATORS FROM n8n
+
+    Runs inside VSCode - No separate server needed
+
+    Generates standalone code - Not tied to ERA runtime
+
+    Git-friendly - Workflows are JSON files, version controllable
+
+    Developer-focused - CLI commands, VSCode integration
+
+    Export flexibility - Bundle, Docker, GitHub Actions
+
+    No vendor lock-in - Output is plain JavaScript
+
+Build this extension step by step. Start with Phase 1 MVP. Create all necessary files with complete implementations. The code must be production-quality, well-commented, and follow VSCode extension best practices. Use proper TypeScript types everywhere. Handle all edge cases and errors gracefully.

@@ -1,0 +1,31 @@
+export function generate(params: any): string {
+	return JSON.stringify(
+		{
+			$schema: "http://json.schemastore.org/launchsettings.json",
+			profiles: {
+				https: {
+					commandName: "Project",
+					dotnetRunMessages: true,
+					launchBrowser: true,
+					launchUrl: "swagger",
+					applicationUrl: "https://localhost:7001;http://localhost:5001",
+					environmentVariables: {
+						ASPNETCORE_ENVIRONMENT: "Development",
+					},
+				},
+				http: {
+					commandName: "Project",
+					dotnetRunMessages: true,
+					launchBrowser: true,
+					launchUrl: "swagger",
+					applicationUrl: "http://localhost:5001",
+					environmentVariables: {
+						ASPNETCORE_ENVIRONMENT: "Development",
+					},
+				},
+			},
+		},
+		null,
+		2,
+	);
+}

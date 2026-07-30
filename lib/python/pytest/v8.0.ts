@@ -1,0 +1,29 @@
+export function generate(params: any): string {
+	return `[pytest]
+testpaths = tests
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+addopts = 
+    -v
+    --strict-markers
+    --tb=short
+    --maxfail=5
+    --disable-warnings
+    --cov=.
+    --cov-report=html
+    --cov-report=term-missing
+    --cov-fail-under=80
+markers =
+    slow: marks tests as slow (deselect with '-m "not slow"')
+    integration: marks tests as integration tests
+    unit: marks tests as unit tests
+    api: marks tests as API tests
+
+[coverage:run]
+omit =
+    */migrations/*
+    */tests/*
+    */venv/*
+    setup.py`;
+}

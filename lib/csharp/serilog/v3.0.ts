@@ -1,0 +1,36 @@
+export function generate(params: any): string {
+	return JSON.stringify(
+		{
+			Serilog: {
+				Using: ["Serilog.Sinks.Console", "Serilog.Sinks.File"],
+				MinimumLevel: {
+					Default: "Information",
+					Override: {
+						Microsoft: "Warning",
+						System: "Warning",
+					},
+				},
+				WriteTo: [
+					{
+						Name: "Console",
+						Args: {
+							outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+						},
+					},
+					{
+						Name: "File",
+						Args: {
+							path: "logs/log-.txt",
+							rollingInterval: "Day",
+							retainedFileCountLimit: 30,
+							outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+						},
+					},
+				],
+				Enrich: ["FromLogContext", "WithMachineName", "WithThreadId"],
+			},
+		},
+		null,
+		2,
+	);
+}
